@@ -19,7 +19,8 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
 from app.schemas.alert import ScoreRequest, ScoreResponse
-from app.db import insert_alert, get_baseline_type
+from app.db import insert_alert
+from app.ml.drift import get_baseline_type
 from app.api.ws import manager
 
 router = APIRouter()

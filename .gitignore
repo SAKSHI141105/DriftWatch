@@ -19,6 +19,8 @@ env/
 backend/data/*.parquet
 backend/data/*.csv
 backend/data/*.json
+backend/data/*.db-shm
+backend/data/*.db-wal
 
 # Model artifacts (large — regenerate locally)
 backend/app/models/*.pkl
@@ -51,5 +53,9 @@ Thumbs.db
 # Logs
 *.log
 
-DriftWatch_Agent_Prompt.md
-DriftWatch_PRD.md
+# Agent & PRD files (do not upload)
+*DriftWatch_Agent*
+*DriftWatch_PRD*
+docs/
+AGENTS.md
+CLAUDE.md
