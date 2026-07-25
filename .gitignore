@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data files (large — regenerate locally)
+backend/data/*.parquet
+backend/data/*.csv
+backend/data/*.json
+
+# Model artifacts (large — regenerate locally)
+backend/app/models/*.pkl
+backend/app/models/*.joblib
+backend/app/models/*.json
+backend/app/models/*.ubj
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Node / Next.js
+node_modules/
+.next/
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+
+DriftWatch_Agent_Prompt.md
+DriftWatch_PRD.md
