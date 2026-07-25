@@ -25,6 +25,7 @@ backend/app/models/*.pkl
 backend/app/models/*.joblib
 backend/app/models/*.json
 backend/app/models/*.ubj
+backend/app/models/*.parquet
 
 # Environment
 .env
