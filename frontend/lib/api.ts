@@ -111,7 +111,7 @@ export function useAlertStream(
         ws.onclose = () => {
           reconnectTimer = setTimeout(connect, 3000);
         };
-      } catch (err) {
+      } catch {
         reconnectTimer = setTimeout(connect, 5000);
       }
     }

@@ -12,7 +12,34 @@ export default function MetricsPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = async () => {
+  // Fix: all async logic inside effect body with cancel-token
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      try {
+        const data = await fetchMetrics();
+        if (!cancelled) {
+          setMetrics(data);
+          setError(null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch metrics:", err);
+        if (!cancelled)
+          setError(
+            "Failed to connect to backend ML metrics service (http://localhost:8000/api/metrics)."
+          );
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleRefresh = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -25,10 +52,6 @@ export default function MetricsPage() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    loadData();
-  }, []);
 
   return (
     <div className="min-h-screen bg-[#090d16] flex flex-col font-sans">
@@ -48,14 +71,15 @@ export default function MetricsPage() {
                 </span>
               </h1>
               <p className="text-xs text-slate-400 font-mono mt-0.5">
-                Live performance benchmarks of Layer 1 (IForest) &amp; Layer 2 (XGBoost + SMOTE) evaluated on held-out test data.
+                Live benchmarks: Layer 1 (IForest) &amp; Layer 2 (XGBoost + SMOTE) on held-out test data.
               </p>
             </div>
           </div>
 
           <button
-            onClick={loadData}
-            className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono flex items-center gap-2 border border-slate-700 transition-colors"
+            onClick={handleRefresh}
+            disabled={loading}
+            className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono flex items-center gap-2 border border-slate-700 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-amber-400" : ""}`} />
             <span>Refresh Telemetry</span>
@@ -69,7 +93,7 @@ export default function MetricsPage() {
               <span>{error}</span>
             </div>
             <button
-              onClick={loadData}
+              onClick={handleRefresh}
               className="px-3 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-mono"
             >
               Retry
@@ -78,9 +102,9 @@ export default function MetricsPage() {
         )}
 
         {loading && !metrics ? (
-          <div className="p-16 text-center text-slate-500 font-mono bg-slate-900/40 rounded-xl border border-slate-800">
-            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-3 text-amber-400" />
-            Loading model evaluation metrics and ADWIN drift status...
+          <div className="p-16 text-center text-slate-500 font-mono bg-slate-900/40 rounded-xl border border-slate-800 flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-amber-500/30 border-t-amber-400 rounded-full animate-spin" />
+            <span>Loading model evaluation metrics and ADWIN drift status...</span>
           </div>
         ) : metrics ? (
           <MetricsGrid metrics={metrics} />

@@ -13,7 +13,7 @@ from pathlib import Path
 import sys
 
 import pandas as pd
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
@@ -47,6 +47,17 @@ async def score_event_endpoint(
     event_id = request.event_id or str(uuid.uuid4())
     row = pd.Series(request.model_dump())
     row["event_id"] = event_id
+
+    # Guard: if models failed to load at startup, return a clear 503
+    if "baselines" not in state or "if_model" not in state:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "ML models not loaded. "
+                "Run 'python backend/app/ml/score_all.py' first, "
+                "then restart the uvicorn server."
+            ),
+        )
 
     baselines = state["baselines"]
     feature_cols = state["feature_cols"]
