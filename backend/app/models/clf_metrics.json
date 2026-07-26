@@ -1,0 +1,104 @@
+{
+  "per_class": {
+    "brute_force": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "pr_auc": 1.0,
+      "support": 18
+    },
+    "credential_misuse": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "pr_auc": 1.0,
+      "support": 16
+    },
+    "device_spoofing": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "pr_auc": 1.0,
+      "support": 16
+    },
+    "impossible_travel": {
+      "precision": 1.0,
+      "recall": 0.8823529411764706,
+      "f1": 0.9375,
+      "pr_auc": 1.0,
+      "support": 17
+    },
+    "lateral_movement": {
+      "precision": 1.0,
+      "recall": 0.9444444444444444,
+      "f1": 0.9714285714285714,
+      "pr_auc": 0.9747474747474748,
+      "support": 18
+    },
+    "normal": {
+      "precision": 0.9992505620784412,
+      "recall": 1.0,
+      "f1": 0.9996251405722854,
+      "pr_auc": 0.9999988101180004,
+      "support": 4000
+    }
+  },
+  "confusion_matrix": [
+    [
+      18,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      16,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      16,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      15,
+      0,
+      2
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      17,
+      1
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      4000
+    ]
+  ],
+  "class_names": [
+    "brute_force",
+    "credential_misuse",
+    "device_spoofing",
+    "impossible_travel",
+    "lateral_movement",
+    "normal"
+  ]
+}

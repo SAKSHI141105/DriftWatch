@@ -93,6 +93,63 @@ def init_db() -> None:
         )
         """)
 
+        # Seed initial sample alerts if empty
+        alert_cnt = conn.execute("SELECT COUNT(*) FROM alerts").fetchone()[0]
+        if alert_cnt == 0:
+            import uuid
+            from datetime import datetime, timezone
+            now = datetime.now(timezone.utc).isoformat()
+            sample_alerts = [
+                {
+                    "id": str(uuid.uuid4()), "event_id": str(uuid.uuid4()), "timestamp": now,
+                    "user_id": "user_0099", "device_id": "dev_spoofed_88", "source_ip": "185.220.101.5",
+                    "geo_city": "Oslo", "geo_lat": 59.9139, "geo_lon": 10.7522,
+                    "resource_accessed": "prod-aws-vault", "action": "login", "auth_method": "password",
+                    "session_duration_s": 12, "bytes_transferred": 1024, "success": 1,
+                    "risk_score": 96, "attack_type": "credential_misuse", "confidence": 0.98,
+                    "anomaly_score": 0.89, "reason": "Risk score 96/100 — flagged as credential misuse. Device fingerprint 'dev_spoofed_88' is unseen for user_0099. Access from high-risk IP 185.220.101.5.",
+                    "baseline_type": "personal", "cold_start": 0, "status": "open",
+                    "true_label": "credential_misuse", "role": "standard", "created_at": now
+                },
+                {
+                    "id": str(uuid.uuid4()), "event_id": str(uuid.uuid4()), "timestamp": now,
+                    "user_id": "user_0012", "device_id": "dev_bot_net_01", "source_ip": "45.142.120.10",
+                    "geo_city": "Tokyo", "geo_lat": 35.6762, "geo_lon": 139.6503,
+                    "resource_accessed": "hr-payroll-db", "action": "login", "auth_method": "password",
+                    "session_duration_s": 5, "bytes_transferred": 500, "success": 0,
+                    "risk_score": 88, "attack_type": "brute_force", "confidence": 0.95,
+                    "anomaly_score": 0.82, "reason": "Risk score 88/100 — flagged as brute force attack. 15 failed authentication attempts within 2 minutes.",
+                    "baseline_type": "personal", "cold_start": 0, "status": "open",
+                    "true_label": "brute_force", "role": "standard", "created_at": now
+                },
+                {
+                    "id": str(uuid.uuid4()), "event_id": str(uuid.uuid4()), "timestamp": now,
+                    "user_id": "user_0005", "device_id": "dev_reg_22", "source_ip": "10.0.4.19",
+                    "geo_city": "New York", "geo_lat": 40.7128, "geo_lon": -74.006,
+                    "resource_accessed": "security-audit-log", "action": "read", "auth_method": "sso",
+                    "session_duration_s": 900, "bytes_transferred": 10485760, "success": 1,
+                    "risk_score": 78, "attack_type": "lateral_movement", "confidence": 0.91,
+                    "anomaly_score": 0.74, "reason": "Risk score 78/100 — flagged as lateral movement. 6 distinct sensitive network resources accessed sequentially.",
+                    "baseline_type": "personal", "cold_start": 0, "status": "open",
+                    "true_label": "lateral_movement", "role": "admin", "created_at": now
+                }
+            ]
+            conn.executemany("""
+            INSERT OR IGNORE INTO alerts (
+                id, event_id, timestamp, user_id, device_id, source_ip,
+                geo_city, geo_lat, geo_lon, resource_accessed, action,
+                auth_method, session_duration_s, bytes_transferred, success,
+                risk_score, attack_type, confidence, anomaly_score, reason,
+                baseline_type, cold_start, status, true_label, role, created_at
+            ) VALUES (
+                :id, :event_id, :timestamp, :user_id, :device_id, :source_ip,
+                :geo_city, :geo_lat, :geo_lon, :resource_accessed, :action,
+                :auth_method, :session_duration_s, :bytes_transferred, :success,
+                :risk_score, :attack_type, :confidence, :anomaly_score, :reason,
+                :baseline_type, :cold_start, :status, :true_label, :role, :created_at
+            )
+            """, sample_alerts)
+
 
 def insert_alert(alert: dict) -> None:
     with db_conn() as conn:

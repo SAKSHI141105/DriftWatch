@@ -23,12 +23,7 @@ backend/data/*.db-shm
 backend/data/*.db-wal
 backend/data/driftwatch.db
 
-# Model artifacts (large — regenerate locally)
-backend/app/models/*.pkl
-backend/app/models/*.joblib
-backend/app/models/*.json
-backend/app/models/*.ubj
-backend/app/models/*.parquet
+
 
 # Environment
 .env

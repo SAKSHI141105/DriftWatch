@@ -1,0 +1,27 @@
+{
+  "checked_at": "2026-07-25T20:47:52.550413+00:00",
+  "window_days": 30,
+  "users_checked": 100,
+  "users_drifted": 0,
+  "drifted_users": [],
+  "population_drift": [
+    {
+      "drifted": 0,
+      "feature": "session_duration_s",
+      "ks_statistic": 0.02218596976491075,
+      "p_value": 0.06850673039934012,
+      "method": "ks_test",
+      "reason": "no significant drift"
+    },
+    {
+      "drifted": 0,
+      "feature": "bytes_transferred",
+      "ks_statistic": 0.014813231310338244,
+      "p_value": 0.43765022132338544,
+      "method": "ks_test",
+      "reason": "no significant drift"
+    }
+  ],
+  "global_drift_detected": false,
+  "method": "ks_test"
+}

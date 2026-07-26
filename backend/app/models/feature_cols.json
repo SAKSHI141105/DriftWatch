@@ -1,0 +1,21 @@
+[
+  "hour_of_day",
+  "hour_deviation",
+  "session_z",
+  "bytes_z",
+  "is_novel_device",
+  "is_public_ip",
+  "n_known_devices",
+  "resource_breadth_ratio",
+  "session_resource_count",
+  "rapid_failure_count",
+  "travel_speed_kmh",
+  "is_impossible_travel",
+  "city_changed",
+  "cold_start",
+  "session_duration_s",
+  "bytes_transferred",
+  "success",
+  "action_enc",
+  "auth_enc"
+]

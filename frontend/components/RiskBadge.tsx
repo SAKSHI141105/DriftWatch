@@ -13,15 +13,15 @@ export function RiskBadge({ score, attackType, size = "md" }: RiskBadgeProps) {
 
   if (score >= 90) {
     intensityClass =
-      "bg-amber-500/20 text-amber-900 dark:text-amber-200 border-amber-500/60 font-bold shadow-[0_0_16px_rgba(245,158,11,0.25)] animate-pulse";
+      "bg-amber-500/20 text-[#78350f] dark:text-amber-200 border-amber-500/60 font-bold shadow-[0_0_16px_rgba(245,158,11,0.25)] animate-pulse";
     badgeLabel = "CRITICAL";
   } else if (score >= 70) {
     intensityClass =
-      "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/50 font-semibold shadow-[0_0_10px_rgba(245,158,11,0.15)]";
+      "bg-amber-500/15 text-[#78350f] dark:text-amber-300 border-amber-500/50 font-semibold shadow-[0_0_10px_rgba(245,158,11,0.15)]";
     badgeLabel = "HIGH";
   } else if (score >= 40) {
     intensityClass =
-      "bg-amber-500/10 text-amber-800 dark:text-amber-300/90 border-amber-500/40 font-medium";
+      "bg-amber-500/10 text-[#78350f] dark:text-amber-300/90 border-amber-500/40 font-medium";
     badgeLabel = "ELEVATED";
   } else {
     intensityClass =
