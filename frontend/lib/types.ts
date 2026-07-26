@@ -13,6 +13,14 @@ export interface AlertSummary {
   status: 'open' | 'confirmed' | 'dismissed' | string;
 }
 
+export interface FeedbackRecord {
+  id?: number;
+  alert_id: string;
+  action: string;
+  note?: string;
+  created_at: string;
+}
+
 export interface Alert extends AlertSummary {
   event_id: string;
   device_id: string;
@@ -27,6 +35,8 @@ export interface Alert extends AlertSummary {
   cold_start: boolean;
   true_label?: string;
   role?: string;
+  notes?: FeedbackRecord[];
+  latest_note?: string;
 }
 
 export interface AlertsResponse {
@@ -61,7 +71,7 @@ export interface MetricsResponse {
 }
 
 export interface FeedbackRequest {
-  action: 'confirm' | 'dismiss';
+  action: 'confirm' | 'dismiss' | 'note';
   note?: string;
 }
 

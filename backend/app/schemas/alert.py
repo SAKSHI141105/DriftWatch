@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class AlertBase(BaseModel):
@@ -23,6 +23,23 @@ class AlertBase(BaseModel):
     bytes_transferred: int
     success: bool
 
+    @field_validator("success", mode="before")
+    @classmethod
+    def coerce_success(cls, v):
+        """SQLite stores booleans as 0/1 integers."""
+        return bool(v)
+
+
+class FeedbackRecord(BaseModel):
+    id: Optional[int] = None
+    alert_id: str
+    action: str
+    note: Optional[str] = None
+    created_at: str
+
+    class Config:
+        from_attributes = True
+
 
 class Alert(AlertBase):
     id: str
@@ -36,6 +53,14 @@ class Alert(AlertBase):
     status: str                     # 'open' | 'confirmed' | 'dismissed'
     true_label: Optional[str] = None   # ground truth (for metrics only)
     role: Optional[str] = None
+    notes: list[FeedbackRecord] = []
+    latest_note: Optional[str] = None
+
+    @field_validator("cold_start", mode="before")
+    @classmethod
+    def coerce_cold_start(cls, v):
+        """SQLite stores booleans as 0/1 integers."""
+        return bool(v)
 
     class Config:
         from_attributes = True

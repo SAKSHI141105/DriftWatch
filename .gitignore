@@ -21,6 +21,7 @@ backend/data/*.csv
 backend/data/*.json
 backend/data/*.db-shm
 backend/data/*.db-wal
+backend/data/driftwatch.db
 
 # Model artifacts (large — regenerate locally)
 backend/app/models/*.pkl
@@ -52,6 +53,10 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Reference UI
+Reference UI/
+*Reference UI*
 
 # Agent & PRD files (do not upload)
 *DriftWatch_Agent*

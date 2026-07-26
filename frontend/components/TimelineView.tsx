@@ -110,21 +110,21 @@ export function TimelineView({ alert }: { alert: Alert }) {
   const touchpoints = generateTouchpoints();
 
   return (
-    <div className="rounded-xl bg-slate-900/90 border border-slate-800 p-6 shadow-xl">
-      <h4 className="text-xs font-mono uppercase tracking-wider text-slate-400 mb-6 flex items-center gap-2">
-        <Clock className="w-4 h-4 text-amber-400" />
+    <div className="rounded-xl bg-card border border-border p-6 shadow-xl">
+      <h4 className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-6 flex items-center gap-2">
+        <Clock className="w-4 h-4 text-amber-500" />
         <span>Event Sequence &amp; Behavioral Chronology</span>
       </h4>
 
-      <div className="relative pl-7 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-px before:bg-slate-800">
+      <div className="relative pl-7 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-px before:bg-border">
         {touchpoints.map((tp, idx) => (
           <div key={idx} className="relative">
             {/* Timeline dot */}
             <span
-              className={`absolute -left-7 top-1 w-4 h-4 rounded-full border-2 border-slate-900 ${
+              className={`absolute -left-7 top-1 w-4 h-4 rounded-full border-2 border-background ${
                 tp.status === "alert"
                   ? "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)] animate-pulse"
-                  : "bg-slate-600"
+                  : "bg-muted-foreground"
               }`}
             />
 
@@ -132,32 +132,32 @@ export function TimelineView({ alert }: { alert: Alert }) {
               className={`p-4 rounded-lg border transition-all ${
                 tp.status === "alert"
                   ? "bg-amber-500/10 border-amber-500/30"
-                  : "bg-slate-950/60 border-slate-800/80"
+                  : "bg-muted/60 border-border"
               }`}
             >
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono mb-2">
-                <span className="text-slate-300 font-bold flex items-center gap-1.5">
-                  <Clock className="w-3 h-3 text-slate-500" />
+                <span className="text-foreground font-bold flex items-center gap-1.5">
+                  <Clock className="w-3 h-3 text-muted-foreground" />
                   {tp.time}
                 </span>
-                <span className="text-slate-400 flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-slate-500" />
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-muted-foreground" />
                   {tp.location}
                 </span>
                 {tp.ip !== "—" && (
-                  <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-amber-300/90 text-[11px]">
+                  <span className="px-2 py-0.5 rounded bg-muted border border-border text-amber-500/90 text-[11px]">
                     {tp.ip}
                   </span>
                 )}
               </div>
 
-              <div className="text-sm font-sans font-medium text-slate-200">
+              <div className="text-sm font-sans font-medium text-foreground">
                 {tp.action}
               </div>
 
               {tp.note && (
-                <div className="mt-2 pt-2 border-t border-amber-500/20 text-xs font-mono text-amber-300 flex items-start gap-1.5">
-                  <ShieldAlert className="w-3.5 h-3.5 shrink-0 text-amber-400 mt-0.5" />
+                <div className="mt-2 pt-2 border-t border-amber-500/20 text-xs font-mono text-amber-500 flex items-start gap-1.5">
+                  <ShieldAlert className="w-3.5 h-3.5 shrink-0 text-amber-500 mt-0.5" />
                   <span>{tp.note}</span>
                 </div>
               )}

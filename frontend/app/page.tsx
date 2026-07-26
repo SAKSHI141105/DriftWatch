@@ -2,51 +2,69 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { fetchAlerts, useAlertStream } from "../lib/api";
-import { AlertSummary } from "../lib/types";
-import { Navbar } from "../components/Navbar";
+import { fetchAlerts, fetchMetrics, refreshTelemetryBatch, useAlertStream } from "../lib/api";
+import { AlertSummary, MetricsResponse } from "../lib/types";
 import { AlertTable } from "../components/AlertTable";
-import { Shield, Radio, ArrowRight, RefreshCw, AlertTriangle } from "lucide-react";
+import {
+  Shield,
+  Radio,
+  ArrowRight,
+  RefreshCw,
+  AlertTriangle,
+  Activity,
+  Zap,
+  CheckCircle2,
+} from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
+import { Button } from "../components/ui/Button";
+import { Badge } from "../components/ui/Badge";
 
 export default function DashboardPage() {
   const [alerts, setAlerts] = useState<AlertSummary[]>([]);
+  const [metrics, setMetrics] = useState<MetricsResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [wsConnected, setWsConnected] = useState<boolean>(true);
+  const [activeTab, setActiveTab] = useState<string>("queue");
 
-  // Initial load from REST API — async logic lives fully inside effect
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await fetchAlerts({ limit: 50, status: "open" });
-        if (!cancelled) setAlerts(res.alerts);
-      } catch (err) {
-        console.error("Failed to load alerts:", err);
-        if (!cancelled) {
-          setError(
-            "Unable to connect to DriftWatch API backend (http://localhost:8000). Please ensure uvicorn is running."
-          );
-          setWsConnected(false);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [alertsRes, metricsRes] = await Promise.all([
+        fetchAlerts({ limit: 100 }),
+        fetchMetrics(true),
+      ]);
+      setAlerts(alertsRes.alerts);
+      setMetrics(metricsRes);
+    } catch (err) {
+      console.error("Failed to load dashboard data:", err);
+      setError(
+        "Unable to connect to DriftWatch API backend (http://localhost:8000). Please ensure uvicorn is running."
+      );
+      setWsConnected(false);
+    } finally {
+      setLoading(false);
     }
-    load();
-    return () => { cancelled = true; };
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const handleRefresh = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetchAlerts({ limit: 50, status: "open" });
-      setAlerts(res.alerts);
+      await refreshTelemetryBatch();
+      const [alertsRes, metricsRes] = await Promise.all([
+        fetchAlerts({ limit: 100 }),
+        fetchMetrics(true),
+      ]);
+      setAlerts(alertsRes.alerts);
+      setMetrics(metricsRes);
     } catch (err) {
-      console.error("Failed to reload alerts:", err);
+      console.error("Failed to refresh dashboard data:", err);
       setError(
         "Unable to connect to DriftWatch API backend (http://localhost:8000). Please ensure uvicorn is running."
       );
@@ -55,7 +73,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Connect to live WebSocket stream for real-time alert pushes
   useAlertStream(
     (newAlert) => {
       setAlerts((prev) => {
@@ -63,14 +80,15 @@ export default function DashboardPage() {
         return [newAlert, ...prev];
       });
       setWsConnected(true);
+      fetchMetrics().then(setMetrics).catch(() => {});
     },
     (initAlerts) => {
       setWsConnected(true);
-      // Use functional update to read latest state — avoids stale closure
       setAlerts((prev) => {
         if (prev.length === 0 && initAlerts.length > 0) return initAlerts;
         return prev;
       });
+      fetchMetrics().then(setMetrics).catch(() => {});
     }
   );
 
@@ -78,104 +96,201 @@ export default function DashboardPage() {
     setAlerts((prev) =>
       prev.map((a) => (a.id === alertId ? { ...a, status: newStatus } : a))
     );
+    // Refresh database counts to update KPI cards immediately
+    fetchMetrics().then(setMetrics).catch(() => {});
   };
 
-  const openCount = alerts.filter((a) => a.status === "open").length;
-  const criticalCount = alerts.filter((a) => a.risk_score >= 80 && a.status === "open").length;
+  const openCount = metrics ? metrics.open_alerts : alerts.filter((a) => a.status === "open").length;
+  const confirmedCount = metrics ? metrics.confirmed_alerts : alerts.filter((a) => a.status === "confirmed").length;
+  const dismissedCount = metrics ? metrics.dismissed_alerts : alerts.filter((a) => a.status === "dismissed").length;
+  const criticalCount = alerts.filter(
+    (a) => a.risk_score >= 80 && a.status === "open"
+  ).length;
 
   return (
-    <div className="min-h-screen bg-[#090d16] flex flex-col font-sans">
-      <Navbar wsConnected={wsConnected} />
+    <div className="space-y-6">
+      {/* Top Page Header (shadcn-admin style) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+            <span>Behavioral Threat Queue</span>
+            {criticalCount > 0 && (
+              <Badge variant="amber" className="animate-pulse">
+                {criticalCount} CRITICAL
+              </Badge>
+            )}
+          </h1>
+          <p className="text-xs text-muted-foreground font-mono mt-1">
+            Real-time behavioral anomalies flagged by Layer 1 Isolation Forest &amp; classified by Layer 2 XGBoost.
+          </p>
+        </div>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
-        {/* SOC Status Banner */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-5 rounded-xl bg-gradient-to-r from-slate-900 via-[#0f172a] to-slate-900 border border-slate-800 shadow-xl">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-              <Shield className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-100 tracking-tight flex items-center gap-2.5">
-                <span>Real-Time Behavioral Threat Queue</span>
-                {criticalCount > 0 && (
-                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500 font-semibold animate-pulse">
-                    {criticalCount} CRITICAL
-                  </span>
-                )}
-              </h1>
-              <p className="text-xs text-slate-400 font-mono mt-0.5">
-                Flagged by Layer 1 (IForest) &amp; attributed by Layer 2 (XGBoost).
-              </p>
-            </div>
-          </div>
+        {/* Top Action Buttons */}
+        <div className="flex items-center gap-2.5 shrink-0 font-mono">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={loading}
+          >
+            <RefreshCw
+              className={`w-3.5 h-3.5 mr-1.5 ${
+                loading ? "animate-spin text-amber-500" : ""
+              }`}
+            />
+            <span>Refresh</span>
+          </Button>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleRefresh}
-              disabled={loading}
-              className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono flex items-center gap-2 border border-slate-700 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-amber-400" : ""}`} />
-              <span>Refresh Queue</span>
-            </button>
-
-            <Link
-              href="/simulate"
-              className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs font-mono flex items-center gap-2 shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all"
-            >
-              <Radio className="w-3.5 h-3.5 animate-pulse" />
+          <Link href="/simulate">
+            <Button variant="amber" size="sm">
+              <Zap className="w-3.5 h-3.5 mr-1.5 animate-pulse" />
               <span>Inject Synthetic Attack</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+              <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            </Button>
+          </Link>
         </div>
+      </div>
 
-        {/* Error State */}
-        {error && (
-          <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-600/50 text-amber-200 text-sm flex items-center justify-between font-mono">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
-              <span>{error}</span>
+      {/* Error Banner */}
+      {error && (
+        <div className="p-4 rounded-xl bg-destructive/15 border border-destructive/30 text-destructive text-xs font-mono flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {/* Overview Stat Cards Grid (shadcn-admin KPI cards) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Total Open Alerts */}
+        <Card className="hover:border-ring transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-mono uppercase text-muted-foreground font-medium">
+              Total Open Alerts
+            </CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+              <Shield className="w-4 h-4" />
             </div>
-            <button
-              onClick={handleRefresh}
-              className="px-3 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-mono"
-            >
-              Retry Connection
-            </button>
-          </div>
-        )}
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold font-mono text-foreground">
+              {openCount}
+            </div>
+            <p className="text-[11px] text-muted-foreground font-mono mt-1 flex items-center gap-1">
+              <span className="text-amber-500 font-medium">{confirmedCount} confirmed</span>
+              <span>·</span>
+              <span>{dismissedCount} dismissed</span>
+            </p>
+          </CardContent>
+        </Card>
 
-        {/* Queue Stats Ribbon */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-            <div className="text-xs font-mono text-slate-400 uppercase">Total Open Alerts</div>
-            <div className="text-2xl font-mono font-bold text-slate-100 mt-1">{openCount}</div>
-          </div>
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-            <div className="text-xs font-mono text-slate-400 uppercase">Critical (&ge;80)</div>
-            <div className="text-2xl font-mono font-bold text-amber-400 mt-1">{criticalCount}</div>
-          </div>
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-            <div className="text-xs font-mono text-slate-400 uppercase">Detection Engine</div>
-            <div className="text-sm font-mono font-semibold text-emerald-400 mt-2">2-Stage Active</div>
-          </div>
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-            <div className="text-xs font-mono text-slate-400 uppercase">Hot Path Latency</div>
-            <div className="text-sm font-mono font-semibold text-slate-300 mt-2">&lt; 10.0 ms</div>
-          </div>
+        {/* Card 2: Critical Threats */}
+        <Card className="hover:border-ring transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-mono uppercase text-muted-foreground font-medium">
+              Critical (&ge;80 Risk)
+            </CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold font-mono text-amber-500 dark:text-amber-400">
+              {criticalCount}
+            </div>
+            <p className="text-[11px] text-muted-foreground font-mono mt-1">
+              High-priority SOC verification
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Card 3: Detection Engine */}
+        <Card className="hover:border-ring transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-mono uppercase text-muted-foreground font-medium">
+              Detection Engine
+            </CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
+              <Activity className="w-4 h-4" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">
+              2-Stage Active Pipeline
+            </div>
+            <p className="text-[11px] text-muted-foreground font-mono mt-1">
+              IForest + XGBoost + SMOTE
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Card 4: Hot Path Latency */}
+        <Card className="hover:border-ring transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-mono uppercase text-muted-foreground font-medium">
+              Inference Latency
+            </CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center text-foreground">
+              <Radio className="w-4 h-4 text-amber-500 animate-pulse" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold font-mono text-foreground">
+              &lt; 10.0 <span className="text-xs text-muted-foreground font-normal">ms</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground font-mono mt-1">
+              POST /score real-time hot path
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Admin Tabbed Interface */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-1 border-b border-border font-mono text-xs pb-1">
+          <button
+            onClick={() => setActiveTab("queue")}
+            className={`px-3 py-1.5 rounded-lg transition-all font-semibold cursor-pointer ${
+              activeTab === "queue"
+                ? "bg-accent text-amber-500 dark:text-amber-400 border border-border"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Threat Queue ({alerts.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("critical")}
+            className={`px-3 py-1.5 rounded-lg transition-all font-semibold cursor-pointer ${
+              activeTab === "critical"
+                ? "bg-accent text-amber-500 dark:text-amber-400 border border-border"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Critical Only ({criticalCount})
+          </button>
         </div>
 
-        {/* Main Queue Table */}
+        {/* Tab Content: Alert Table */}
         {loading && alerts.length === 0 ? (
-          <div className="p-16 text-center text-slate-500 font-mono bg-slate-900/40 rounded-xl border border-slate-800">
-            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-3 text-amber-400" />
-            Loading behavioral alerts from database...
+          <div className="p-16 text-center text-muted-foreground font-mono bg-card rounded-xl border border-border">
+            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-3 text-amber-500" />
+            Fetching behavioral alerts from SQLite database...
           </div>
         ) : (
-          <AlertTable alerts={alerts} onStatusChange={handleStatusChange} />
+          <AlertTable
+            alerts={
+              activeTab === "critical"
+                ? alerts.filter((a) => a.risk_score >= 80)
+                : alerts
+            }
+            onStatusChange={handleStatusChange}
+          />
         )}
-      </main>
+      </div>
     </div>
   );
 }

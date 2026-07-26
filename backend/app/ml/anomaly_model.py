@@ -23,6 +23,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+# pyrefly: ignore [missing-import]
 from pyod.models.iforest import IForest
 from sklearn.metrics import (
     average_precision_score,

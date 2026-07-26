@@ -178,7 +178,28 @@ def get_alert_by_id(alert_id: str) -> Optional[dict]:
         row = conn.execute(
             "SELECT * FROM alerts WHERE id = ?", (alert_id,)
         ).fetchone()
-    return dict(row) if row else None
+        if not row:
+            return None
+        alert_dict = dict(row)
+        
+        # Fetch associated feedback records / notes
+        fb_rows = conn.execute(
+            "SELECT id, alert_id, action, note, created_at FROM feedback "
+            "WHERE alert_id = ? ORDER BY created_at DESC",
+            (alert_id,)
+        ).fetchall()
+        
+        notes_list = [dict(r) for r in fb_rows]
+        alert_dict["notes"] = notes_list
+        # Find latest non-empty note
+        latest_note = None
+        for fb in notes_list:
+            if fb.get("note"):
+                latest_note = fb["note"]
+                break
+        alert_dict["latest_note"] = latest_note
+        
+    return alert_dict
 
 
 def update_alert_status(alert_id: str, status: str) -> bool:

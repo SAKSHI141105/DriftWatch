@@ -22,7 +22,7 @@ export function ProgressBar({ value, className = "", showTrack = true }: Progres
       ? "bg-amber-500"
       : pct >= 50
       ? "bg-amber-600"
-      : "bg-slate-600";
+      : "bg-muted-foreground";
 
   return (
     <div
@@ -30,7 +30,7 @@ export function ProgressBar({ value, className = "", showTrack = true }: Progres
       aria-valuenow={Math.round(pct)}
       aria-valuemin={0}
       aria-valuemax={100}
-      className={`relative h-1.5 rounded-full overflow-hidden ${showTrack ? "bg-slate-800" : ""} ${className}`}
+      className={`relative h-1.5 rounded-full overflow-hidden ${showTrack ? "bg-muted" : ""} ${className}`}
     >
       <div
         className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ease-out ${barColor}`}

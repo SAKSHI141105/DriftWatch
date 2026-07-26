@@ -42,11 +42,69 @@ export async function fetchAlertDetail(alertId: string): Promise<Alert> {
   return res.json();
 }
 
-export async function fetchMetrics(): Promise<MetricsResponse> {
-  const res = await fetch(`${API_BASE}/metrics`, {
+export async function fetchMetrics(refresh: boolean = false): Promise<MetricsResponse> {
+  const url = refresh ? `${API_BASE}/metrics?refresh=true` : `${API_BASE}/metrics`;
+  const res = await fetch(url, {
     cache: 'no-store',
   });
   if (!res.ok) throw new Error('Failed to fetch metrics');
+  return res.json();
+}
+
+export async function refreshTelemetryBatch(): Promise<{
+  status: string;
+  events_generated: number;
+  alerts_created: number;
+  elapsed_ms: number;
+  metrics: MetricsResponse;
+}> {
+  const res = await fetch(`${API_BASE}/telemetry/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) throw new Error('Failed to refresh telemetry batch');
+  return res.json();
+}
+
+export async function fetchDriftDetails(): Promise<{
+  global_drift_detected: boolean;
+  users_drifted: number;
+  checked_at: string;
+  adwin_window_size: number;
+  confidence_threshold: number;
+  feature_metrics: Array<{
+    feature: string;
+    ks_stat: number;
+    p_value: number;
+    baseline_mean: string;
+    recent_mean: string;
+    status: string;
+  }>;
+}> {
+  const res = await fetch(`${API_BASE}/drift`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch drift details');
+  return res.json();
+}
+
+export async function fetchRetrainingDetails(): Promise<{
+  total_feedback_labels: number;
+  confirmed_threats: number;
+  dismissed_fps: number;
+  analyst_notes_logged: number;
+  pending_retrain_batch: number;
+  retrain_trigger_threshold: number;
+  versions: Array<{
+    version: string;
+    trained_at: string;
+    samples: number;
+    smote_ratio: string;
+    roc_auc: number;
+    f1_score: number;
+    status: string;
+  }>;
+}> {
+  const res = await fetch(`${API_BASE}/retraining`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch retraining details');
   return res.json();
 }
 
@@ -89,11 +147,16 @@ export function useAlertStream(
   useEffect(() => {
     let ws: WebSocket;
     let reconnectTimer: NodeJS.Timeout;
+    let reconnectDelay = 1000; // Start at 1s, exponential backoff to 30s max
 
     function connect() {
       try {
         ws = new WebSocket(WS_URL);
         wsRef.current = ws;
+
+        ws.onopen = () => {
+          reconnectDelay = 1000; // Reset backoff on successful connection
+        };
 
         ws.onmessage = (event) => {
           try {
@@ -109,10 +172,16 @@ export function useAlertStream(
         };
 
         ws.onclose = () => {
-          reconnectTimer = setTimeout(connect, 3000);
+          reconnectTimer = setTimeout(connect, reconnectDelay);
+          reconnectDelay = Math.min(reconnectDelay * 2, 30000); // Cap at 30s
+        };
+
+        ws.onerror = () => {
+          // onclose will fire after onerror, triggering reconnect
         };
       } catch {
-        reconnectTimer = setTimeout(connect, 5000);
+        reconnectTimer = setTimeout(connect, reconnectDelay);
+        reconnectDelay = Math.min(reconnectDelay * 2, 30000);
       }
     }
 

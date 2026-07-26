@@ -22,9 +22,6 @@ from app.ml.anomaly_model import load_model_artifacts
 from app.ml.classifier import load_classifier_artifacts
 from app.api import alerts, score, metrics, feedback, ws
 
-# Global application state for ML models
-app_state: dict = {}
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -35,21 +32,24 @@ async def lifespan(app: FastAPI):
     try:
         if_model, if_scaler, baselines, feature_cols = load_model_artifacts()
         clf, clf_scaler, le = load_classifier_artifacts()
-        
-        app_state["if_model"] = if_model
-        app_state["if_scaler"] = if_scaler
-        app_state["baselines"] = baselines
-        app_state["feature_cols"] = feature_cols
-        app_state["clf"] = clf
-        app_state["clf_scaler"] = clf_scaler
-        app_state["le"] = le
+
+        # Store on FastAPI's built-in app.state — always accessible via
+        # request.app.state regardless of how Python resolved module imports.
+        app.state.if_model = if_model
+        app.state.if_scaler = if_scaler
+        app.state.baselines = baselines
+        app.state.feature_cols = feature_cols
+        app.state.clf = clf
+        app.state.clf_scaler = clf_scaler
+        app.state.le = le
+        app.state.models_loaded = True
         print("ML models loaded successfully.")
     except Exception as e:
+        app.state.models_loaded = False
         print(f"Warning: Could not load ML model artifacts ({e}). Run python backend/app/ml/score_all.py first.")
 
     yield
     print("Shutting down DriftWatch API...")
-    app_state.clear()
 
 
 app = FastAPI(
@@ -80,7 +80,7 @@ app.include_router(ws.router, tags=["WebSocket"])
 def health_check():
     return {
         "status": "healthy",
-        "models_loaded": bool(app_state.get("if_model") and app_state.get("clf")),
+        "models_loaded": getattr(app.state, "models_loaded", False),
     }
 
 

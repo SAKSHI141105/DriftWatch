@@ -4,18 +4,20 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { scoreEvent } from "../../lib/api";
 import { ScoreRequest, ScoreResponse } from "../../lib/types";
-import { Navbar } from "../../components/Navbar";
 import { RiskBadge } from "../../components/RiskBadge";
 import { ReasonExplainer } from "../../components/ReasonExplainer";
 import {
-  Terminal,
-  Radio,
   Send,
   CheckCircle2,
   ArrowRight,
   Sparkles,
   Cpu,
+  Radio,
 } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/Card";
+import { Button } from "../../components/ui/Button";
+import { Badge } from "../../components/ui/Badge";
+import { Input } from "../../components/ui/Input";
 
 const PRESETS = [
   {
@@ -149,13 +151,16 @@ export default function SimulatePage() {
       setLoading(true);
       setError(null);
       const t0 = performance.now();
-      const res = await scoreEvent({ ...form, timestamp: new Date().toISOString() });
+      const res = await scoreEvent({
+        ...form,
+        timestamp: new Date().toISOString(),
+      });
       setLatencyMs(Math.round(performance.now() - t0));
       setResult(res);
     } catch (err) {
       console.error("Scoring failed:", err);
       setError(
-        "Failed to reach scoring API (POST /score). Ensure the backend uvicorn server is running on port 8000."
+        "Failed to reach scoring API (POST /score). Ensure backend uvicorn is running."
       );
     } finally {
       setLoading(false);
@@ -163,64 +168,63 @@ export default function SimulatePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#090d16] flex flex-col font-sans">
-      <Navbar />
-
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-5 rounded-xl bg-gradient-to-r from-slate-900 via-[#0f172a] to-slate-900 border border-slate-800 shadow-xl">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-              <Terminal className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-100 tracking-tight flex items-center gap-2.5">
-                <span>Live Event Injection &amp; Scoring Sandbox</span>
-                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse font-normal">
-                  Hot Path
-                </span>
-              </h1>
-              <p className="text-xs text-slate-400 font-mono mt-0.5">
-                POST /score · Anomalies (&ge;40 risk) broadcast via WebSocket in real-time.
-              </p>
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+            <span>Live Event Injection Sandbox</span>
+            <Badge variant="amber" className="animate-pulse">
+              HOT PATH (POST /score)
+            </Badge>
+          </h1>
+          <p className="text-xs text-muted-foreground font-mono mt-1">
+            Simulate real-time access events through Layer 1 Isolation Forest &amp; Layer 2 XGBoost. Flagged anomalies (risk &ge;40) broadcast via WebSocket.
+          </p>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left: Presets + Form */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Presets */}
-            <div className="p-5 rounded-xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-3">
-              <h3 className="text-xs font-mono uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-400" />
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left: Presets & Form */}
+        <div className="lg:col-span-5 space-y-6">
+          {/* Presets Card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xs font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-500" />
                 <span>One-Click Attack Presets</span>
-              </h3>
-              <div className="space-y-1.5">
-                {PRESETS.map((p) => (
-                  <button
-                    key={p.type}
-                    onClick={() => applyPreset(p.data)}
-                    className="w-full text-left p-3 rounded-lg bg-slate-950 hover:bg-slate-800/80 border border-slate-800/80 hover:border-slate-700 font-mono text-xs text-slate-300 flex items-center justify-between group transition-all"
-                  >
-                    <span className="group-hover:text-amber-300 transition-colors font-semibold truncate mr-2">
-                      {p.name}
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-400 uppercase shrink-0">
-                      {p.type.replace(/_/g, " ")}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {PRESETS.map((p) => (
+                <button
+                  key={p.type}
+                  onClick={() => applyPreset(p.data)}
+                  className="w-full text-left p-3 rounded-lg bg-background hover:bg-accent border border-border font-mono text-xs text-foreground flex items-center justify-between group transition-all cursor-pointer"
+                >
+                  <span className="group-hover:text-amber-500 dark:group-hover:text-amber-300 transition-colors font-semibold truncate mr-2">
+                    {p.name}
+                  </span>
+                  <Badge variant="secondary" className="shrink-0 text-[9px]">
+                    {p.type.replace(/_/g, " ")}
+                  </Badge>
+                </button>
+              ))}
+            </CardContent>
+          </Card>
 
-            {/* Form */}
-            <div className="p-5 rounded-xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-4 font-mono text-xs">
-              <h3 className="text-xs font-mono uppercase tracking-wider text-slate-400 flex items-center justify-between border-b border-slate-800 pb-2">
+          {/* Telemetry Form Card */}
+          <Card>
+            <CardHeader className="pb-3 border-b border-border">
+              <CardTitle className="text-xs font-mono uppercase tracking-wider text-muted-foreground flex items-center justify-between">
                 <span>Event Telemetry Parameters</span>
-                <span className="text-[10px] text-slate-500 font-normal">JSON Payload</span>
-              </h3>
-
+                <span className="text-[10px] text-muted-foreground font-normal">
+                  JSON Payload
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-3 font-mono text-xs">
               <div className="grid grid-cols-2 gap-3">
                 {(
                   [
@@ -232,27 +236,26 @@ export default function SimulatePage() {
                   ] as { label: string; field: keyof ScoreRequest }[]
                 ).map(({ label, field }) => (
                   <div key={field}>
-                    <label className="text-slate-400 block text-[10px] uppercase mb-1">
+                    <label className="text-muted-foreground block text-[10px] uppercase mb-1">
                       {label}
                     </label>
-                    <input
+                    <Input
                       type="text"
                       value={String(form[field] ?? "")}
                       onChange={(e) =>
                         setForm({ ...form, [field]: e.target.value })
                       }
-                      className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 focus:border-amber-500/60 outline-none transition-colors"
                     />
                   </div>
                 ))}
                 <div>
-                  <label className="text-slate-400 block text-[10px] uppercase mb-1">
+                  <label className="text-muted-foreground block text-[10px] uppercase mb-1">
                     Action
                   </label>
                   <select
                     value={form.action}
                     onChange={(e) => setForm({ ...form, action: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 focus:border-amber-500/60 outline-none uppercase"
+                    className="w-full bg-background border border-input rounded-lg px-2.5 py-1.5 text-xs text-foreground font-mono focus:border-ring outline-none uppercase"
                   >
                     <option value="login">login</option>
                     <option value="read">read</option>
@@ -262,136 +265,137 @@ export default function SimulatePage() {
                 </div>
               </div>
 
-              <button
+              <Button
+                variant="amber"
+                size="lg"
                 onClick={handleScore}
                 disabled={loading}
-                className="w-full mt-2 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-sans font-bold text-sm flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full mt-2"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-4 h-4 mr-2" />
                 <span>
-                  {loading ? "Scoring…" : "Execute Real-Time Scoring (POST /score)"}
+                  {loading
+                    ? "Scoring Telemetry..."
+                    : "Execute Real-Time Scoring (POST /score)"}
                 </span>
-              </button>
-            </div>
-          </div>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
 
-          {/* Right: Output */}
-          <div className="lg:col-span-7">
-            <div className="p-6 rounded-xl bg-slate-900/90 border border-slate-800 shadow-xl min-h-[460px] flex flex-col">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-5">
-                <h3 className="text-sm font-mono uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                  <Cpu className="w-4 h-4 text-amber-400" />
-                  <span>Real-Time Inference Result</span>
-                </h3>
+        {/* Right: Real-Time Inference Output */}
+        <div className="lg:col-span-7">
+          <Card className="h-full min-h-[460px] flex flex-col justify-between">
+            <CardHeader className="border-b border-border flex flex-row items-center justify-between pb-4">
+              <CardTitle className="text-xs font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-amber-500" />
+                <span>Real-Time Inference Output</span>
+              </CardTitle>
+              {latencyMs !== null && (
+                <Badge variant="success" className="font-mono flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>Scored in {latencyMs}ms</span>
+                </Badge>
+              )}
+            </CardHeader>
 
-                {latencyMs !== null && (
-                  <span className="text-xs font-mono text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/60 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Scored in {latencyMs}ms</span>
-                  </span>
-                )}
-              </div>
+            <CardContent className="flex-1 pt-6 flex flex-col justify-center">
+              {error && (
+                <div className="p-4 rounded-lg bg-destructive/15 border border-destructive/30 text-destructive text-xs font-mono">
+                  {error}
+                </div>
+              )}
 
-              <div className="flex-1 flex flex-col">
-                {error && (
-                  <div className="p-4 rounded-lg bg-rose-950/40 border border-rose-600/50 text-rose-300 text-xs font-mono mb-4">
-                    {error}
-                  </div>
-                )}
+              {!result && !loading && !error && (
+                <div className="text-center text-muted-foreground font-mono py-16 space-y-3">
+                  <Radio className="w-10 h-10 text-muted-foreground/50 animate-pulse mx-auto" />
+                  <p className="text-xs">
+                    Select an attack preset or edit telemetry parameters, then execute scoring.
+                  </p>
+                </div>
+              )}
 
-                {!result && !loading && !error && (
-                  <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-500 font-mono text-center py-16">
-                    <Radio className="w-10 h-10 text-slate-700 animate-pulse" />
-                    <p className="text-sm">
-                      Select a preset or fill parameters, then execute scoring.
-                    </p>
-                  </div>
-                )}
+              {loading && (
+                <div className="text-center text-muted-foreground font-mono py-16 space-y-3">
+                  <div className="w-8 h-8 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin mx-auto" />
+                  <p className="text-xs">
+                    Executing Layer 1 IForest &amp; Layer 2 XGBoost pipeline...
+                  </p>
+                </div>
+              )}
 
-                {loading && (
-                  <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-500 font-mono text-center py-16">
-                    <div className="w-10 h-10 border-2 border-amber-500/30 border-t-amber-400 rounded-full animate-spin" />
-                    <p className="text-sm">
-                      Passing through Layer 1 IForest &amp; Layer 2 XGBoost…
-                    </p>
-                  </div>
-                )}
-
-                {result && !loading && (
-                  <div className="space-y-5">
-                    <div className="p-5 rounded-xl bg-slate-950 border border-slate-800 flex flex-wrap items-center justify-between gap-4">
-                      <div>
-                        <span className="text-[10px] font-mono uppercase text-slate-500 block mb-1">
-                          Classification
-                        </span>
-                        <RiskBadge
-                          score={result.risk_score}
-                          attackType={result.attack_type}
-                          size="lg"
-                        />
-                      </div>
-
-                      <div className="text-right font-mono text-xs space-y-1">
-                        <div className="text-[10px] text-slate-500 uppercase">
-                          Layer 1 IF Anomaly Score
-                        </div>
-                        <div className="text-amber-300 font-bold">
-                          {(result.anomaly_score * 100).toFixed(1)}%
-                        </div>
-                        <div className="text-[10px] text-slate-500">
-                          Baseline:{" "}
-                          <strong className="text-slate-300 uppercase">
-                            {result.baseline_type}
-                          </strong>
-                        </div>
-                      </div>
+              {result && !loading && (
+                <div className="space-y-5 font-sans">
+                  {/* Classification Ribbon */}
+                  <div className="p-4 rounded-xl bg-background border border-border flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <span className="text-[10px] font-mono uppercase text-muted-foreground block mb-1">
+                        Inference Result
+                      </span>
+                      <RiskBadge
+                        score={result.risk_score}
+                        attackType={result.attack_type}
+                        size="lg"
+                      />
                     </div>
 
-                    <ReasonExplainer
-                      reason={result.reason}
-                      riskScore={result.risk_score}
-                      attackType={result.attack_type}
-                      confidence={result.confidence}
-                    />
-
-                    {result.alert_id ? (
-                      <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs font-mono">
-                        <div className="flex items-center gap-2.5 text-amber-300">
-                          <Radio className="w-4 h-4 animate-pulse text-amber-400" />
-                          <span>
-                            Alert{" "}
-                            <strong>{result.alert_id.slice(0, 8)}…</strong>{" "}
-                            broadcasted to all dashboards.
-                          </span>
-                        </div>
-                        <Link
-                          href={`/alerts/${result.alert_id}`}
-                          className="px-3 py-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[11px] flex items-center gap-1.5 transition-colors"
-                        >
-                          <span>Investigate</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </Link>
+                    <div className="text-right font-mono text-xs space-y-1">
+                      <div className="text-[10px] text-muted-foreground uppercase">
+                        Layer 1 Anomaly Score
                       </div>
-                    ) : (
-                      <div className="p-3 rounded-lg bg-emerald-950/30 border border-emerald-800/50 text-emerald-300 text-xs font-mono flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      <div className="text-amber-500 dark:text-amber-300 font-bold text-sm">
+                        {(result.anomaly_score * 100).toFixed(1)}%
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        Baseline:{" "}
+                        <strong className="text-foreground uppercase">
+                          {result.baseline_type}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SHAP Reason Explainer */}
+                  <ReasonExplainer
+                    reason={result.reason}
+                    riskScore={result.risk_score}
+                    attackType={result.attack_type}
+                    confidence={result.confidence}
+                  />
+
+                  {/* Broadcast notice */}
+                  {result.alert_id ? (
+                    <div className="p-3.5 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs font-mono">
+                      <div className="flex items-center gap-2 text-amber-500 dark:text-amber-300">
+                        <Radio className="w-4 h-4 animate-pulse text-amber-500" />
                         <span>
-                          Risk below threshold (&lt;40) — logged as legitimate, no alert raised.
+                          Alert <strong>{result.alert_id.slice(0, 8)}…</strong> broadcasted to WebSocket subscribers.
                         </span>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                      <Link href={`/alerts/${result.alert_id}`}>
+                        <Button variant="amber" size="sm">
+                          <span>Investigate</span>
+                          <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                        </Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-xs font-mono flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      <span>Risk score below threshold (&lt;40) — logged as legitimate access.</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
 
-              <div className="pt-4 border-t border-slate-800/80 mt-5 text-[11px] font-mono text-slate-500 flex justify-between items-center">
-                <span>POST http://localhost:8000/api/score</span>
-                <span>WS broadcast: automatic</span>
-              </div>
+            <div className="px-5 py-3 border-t border-border bg-muted/40 text-[10px] font-mono text-muted-foreground flex justify-between items-center">
+              <span>POST http://localhost:8000/api/score</span>
+              <span>WebSocket broadcast: automatic</span>
             </div>
-          </div>
+          </Card>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

@@ -37,6 +37,7 @@ from scipy import stats
 
 # river is optional — fall back to KS-test if not installed
 try:
+    # pyrefly: ignore [missing-import]
     from river import drift as river_drift
     RIVER_AVAILABLE = True
 except ImportError:

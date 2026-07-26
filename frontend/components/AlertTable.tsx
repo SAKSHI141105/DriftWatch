@@ -9,11 +9,16 @@ import {
   Clock,
   MapPin,
   ExternalLink,
-  Filter,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  ShieldAlert,
+  ArrowUpDown,
 } from "lucide-react";
 import { AlertSummary } from "../lib/types";
 import { RiskBadge } from "./RiskBadge";
 import { submitFeedback } from "../lib/api";
+import { Button } from "./ui/Button";
 
 interface AlertTableProps {
   alerts: AlertSummary[];
@@ -34,7 +39,12 @@ const STATUSES = ["open", "confirmed", "dismissed", "ALL"] as const;
 export function AlertTable({ alerts, onStatusChange }: AlertTableProps) {
   const [filterType, setFilterType] = useState<string>("ALL");
   const [filterStatus, setFilterStatus] = useState<string>("open");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [processingId, setProcessingId] = useState<string | null>(null);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 15;
 
   const handleFeedback = async (
     e: React.MouseEvent,
@@ -60,118 +70,149 @@ export function AlertTable({ alerts, onStatusChange }: AlertTableProps) {
   const filteredAlerts = alerts.filter((a) => {
     if (filterType !== "ALL" && a.attack_type !== filterType) return false;
     if (filterStatus !== "ALL" && a.status !== filterStatus) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchUser = a.user_id.toLowerCase().includes(q);
+      const matchResource = a.resource_accessed.toLowerCase().includes(q);
+      const matchCity = a.geo_city.toLowerCase().includes(q);
+      const matchReason = a.reason.toLowerCase().includes(q);
+      if (!matchUser && !matchResource && !matchCity && !matchReason)
+        return false;
+    }
     return true;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filteredAlerts.length / pageSize));
+  const paginatedAlerts = filteredAlerts.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
   return (
-    <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-start gap-3 bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80 backdrop-blur-sm">
-        {/* Attack class filter */}
-        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
-          <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span className="text-[10px] font-mono uppercase text-slate-400 shrink-0">Class:</span>
-          <div className="flex flex-wrap gap-1">
-            {ATTACK_TYPES.map((type) => (
-              <button
-                key={type}
-                onClick={() => setFilterType(type)}
-                className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase transition-all ${
-                  filterType === type
-                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold"
-                    : "bg-slate-800/50 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-transparent"
-                }`}
-              >
-                {type.replace(/_/g, " ")}
-              </button>
-            ))}
+    <div className="space-y-3 font-sans">
+      {/* Table Controls Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-card p-3 rounded-xl border border-border text-card-foreground">
+        {/* Left: Search input */}
+        <div className="flex items-center gap-2 flex-1 min-w-[240px]">
+          <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-2.5" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Filter by user, resource, city, or reason..."
+              className="w-full bg-background border border-input rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground font-mono focus:outline-none focus:border-ring transition-colors"
+            />
           </div>
         </div>
 
-        {/* Status filter + result count */}
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[10px] font-mono uppercase text-slate-400">Status:</span>
-          {STATUSES.map((st) => (
-            <button
-              key={st}
-              onClick={() => setFilterStatus(st)}
-              className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase transition-all ${
-                filterStatus === st
-                  ? "bg-slate-700 text-slate-100 border border-slate-600 font-semibold"
-                  : "bg-slate-800/40 text-slate-400 hover:text-slate-200"
-              }`}
+        {/* Right: Attack type filter & Status filter */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Class Select Dropdown */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-mono uppercase text-muted-foreground">Class:</span>
+            <select
+              value={filterType}
+              onChange={(e) => {
+                setFilterType(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="bg-background border border-input rounded-lg px-2.5 py-1 text-xs text-foreground font-mono focus:outline-none focus:border-ring uppercase"
             >
-              {st}
-            </button>
-          ))}
-          <span className="ml-2 px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-[10px] font-mono text-slate-400">
-            {filteredAlerts.length} results
-          </span>
+              {ATTACK_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t.replace(/_/g, " ")}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status Select Dropdown */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-mono uppercase text-muted-foreground">Status:</span>
+            <select
+              value={filterStatus}
+              onChange={(e) => {
+                setFilterStatus(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="bg-background border border-input rounded-lg px-2.5 py-1 text-xs text-foreground font-mono focus:outline-none focus:border-ring uppercase"
+            >
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-xl border border-slate-800 bg-[#0f172a]/80 backdrop-blur-md overflow-hidden shadow-2xl">
+      {/* Main Data Table */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm text-card-foreground">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-800/80 bg-slate-900/90 text-[11px] font-mono uppercase tracking-wider text-slate-500">
-                <th className="py-3 px-4 whitespace-nowrap">User &amp; Time</th>
-                <th className="py-3 px-4 whitespace-nowrap">Risk</th>
-                <th className="py-3 px-4 whitespace-nowrap">Resource</th>
-                <th className="py-3 px-4">Explanation (excerpt)</th>
+              <tr className="border-b border-border bg-muted/60 text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+                <th className="py-3 px-4 whitespace-nowrap">
+                  <div className="flex items-center gap-1 cursor-pointer hover:text-foreground">
+                    <span>User &amp; Location</span>
+                    <ArrowUpDown className="w-3 h-3" />
+                  </div>
+                </th>
+                <th className="py-3 px-4 whitespace-nowrap">Risk Classification</th>
+                <th className="py-3 px-4 whitespace-nowrap">Resource Touched</th>
+                <th className="py-3 px-4">Behavioral Explanation (SHAP)</th>
                 <th className="py-3 px-4 text-center whitespace-nowrap">Baseline</th>
-                <th className="py-3 px-4 text-right whitespace-nowrap">Action</th>
+                <th className="py-3 px-4 text-right whitespace-nowrap">Verification</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-xs">
+            <tbody className="divide-y divide-border text-xs font-sans">
               <AnimatePresence initial={false}>
-                {filteredAlerts.length === 0 ? (
+                {paginatedAlerts.length === 0 ? (
                   <tr key="empty">
                     <td
                       colSpan={6}
-                      className="py-12 text-center text-slate-500 font-mono"
+                      className="py-12 text-center text-muted-foreground font-mono"
                     >
-                      No alerts match current filter criteria.
+                      <ShieldAlert className="w-6 h-6 mx-auto mb-2 text-muted-foreground/60" />
+                      No behavioral alerts match the selected criteria.
                     </td>
                   </tr>
                 ) : (
-                  filteredAlerts.map((alert) => (
+                  paginatedAlerts.map((alert) => (
                     <motion.tr
                       key={alert.id}
                       layout
-                      initial={{
-                        opacity: 0,
-                        y: -8,
-                        backgroundColor: "rgba(245, 158, 11, 0.1)",
-                      }}
-                      animate={{
-                        opacity: 1,
-                        y: 0,
-                        backgroundColor: "rgba(0, 0, 0, 0)",
-                      }}
-                      exit={{ opacity: 0, transition: { duration: 0.15 } }}
-                      transition={{ duration: 0.25 }}
-                      className="group hover:bg-slate-800/40 transition-colors cursor-pointer"
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="group hover:bg-muted/50 transition-colors cursor-pointer"
                     >
                       {/* User & Time */}
                       <td className="py-3.5 px-4 font-mono">
                         <Link href={`/alerts/${alert.id}`} className="block">
-                          <div className="flex items-center gap-1.5 text-slate-200 font-semibold group-hover:text-amber-300 transition-colors">
+                          <div className="flex items-center gap-1.5 text-foreground font-bold group-hover:text-amber-500 transition-colors">
                             {alert.user_id}
-                            <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-amber-400 shrink-0" />
+                            <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-amber-500 shrink-0" />
                           </div>
-                          <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5">
+                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground mt-0.5">
                             <Clock className="w-3 h-3" />
-                            <span>{new Date(alert.timestamp).toLocaleTimeString()}</span>
-                            <span className="text-slate-700 mx-0.5">·</span>
+                            <span>
+                              {new Date(alert.timestamp).toLocaleTimeString()}
+                            </span>
+                            <span className="text-border mx-0.5">·</span>
                             <MapPin className="w-3 h-3" />
                             <span>{alert.geo_city}</span>
                           </div>
                         </Link>
                       </td>
 
-                      {/* Risk badge */}
+                      {/* Risk Classification */}
                       <td className="py-3.5 px-4">
                         <Link href={`/alerts/${alert.id}`} className="block">
                           <RiskBadge
@@ -183,12 +224,12 @@ export function AlertTable({ alerts, onStatusChange }: AlertTableProps) {
                       </td>
 
                       {/* Resource & Action */}
-                      <td className="py-3.5 px-4 font-mono max-w-[160px]">
+                      <td className="py-3.5 px-4 font-mono max-w-[170px]">
                         <Link href={`/alerts/${alert.id}`} className="block">
-                          <div className="text-slate-300 font-medium truncate">
+                          <div className="text-foreground font-semibold truncate">
                             {alert.resource_accessed}
                           </div>
-                          <div className="text-[10px] uppercase text-amber-400/80 tracking-wide mt-0.5">
+                          <div className="text-[10px] uppercase text-amber-500 font-medium tracking-wide mt-0.5">
                             {alert.action}
                           </div>
                         </Link>
@@ -197,7 +238,7 @@ export function AlertTable({ alerts, onStatusChange }: AlertTableProps) {
                       {/* Reason excerpt */}
                       <td className="py-3.5 px-4 max-w-md">
                         <Link href={`/alerts/${alert.id}`} className="block">
-                          <p className="text-slate-400 line-clamp-2 leading-relaxed text-[11px]">
+                          <p className="text-muted-foreground line-clamp-2 leading-relaxed text-[11px]">
                             {alert.reason}
                           </p>
                         </Link>
@@ -207,10 +248,10 @@ export function AlertTable({ alerts, onStatusChange }: AlertTableProps) {
                       <td className="py-3.5 px-4 text-center font-mono text-[10px]">
                         <Link href={`/alerts/${alert.id}`} className="block">
                           <span
-                            className={`inline-block px-2 py-0.5 rounded border uppercase ${
+                            className={`inline-block px-2 py-0.5 rounded border uppercase font-medium ${
                               alert.baseline_type === "personal"
-                                ? "bg-slate-800/80 text-slate-400 border-slate-700"
-                                : "bg-amber-950/40 text-amber-300 border-amber-800/60"
+                                ? "bg-muted text-muted-foreground border-border"
+                                : "bg-amber-500/10 text-amber-500 border-amber-500/30"
                             }`}
                           >
                             {alert.baseline_type}
@@ -218,33 +259,37 @@ export function AlertTable({ alerts, onStatusChange }: AlertTableProps) {
                         </Link>
                       </td>
 
-                      {/* Analyst action */}
+                      {/* Analyst Verification */}
                       <td className="py-3.5 px-4 text-right">
                         {alert.status === "open" ? (
                           <div className="flex items-center justify-end gap-1.5">
                             <button
-                              onClick={(e) => handleFeedback(e, alert.id, "confirm")}
+                              onClick={(e) =>
+                                handleFeedback(e, alert.id, "confirm")
+                              }
                               disabled={processingId === alert.id}
-                              title="Confirm Attack (Feeds Retraining)"
-                              className="p-1.5 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Confirm Threat (Retrains Model)"
+                              className="p-1.5 rounded bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25 border border-emerald-500/30 transition-all disabled:opacity-50 cursor-pointer"
                             >
-                              <CheckCircle2 className="w-4 h-4" />
+                              <CheckCircle2 className="w-3.5 h-3.5" />
                             </button>
                             <button
-                              onClick={(e) => handleFeedback(e, alert.id, "dismiss")}
+                              onClick={(e) =>
+                                handleFeedback(e, alert.id, "dismiss")
+                              }
                               disabled={processingId === alert.id}
                               title="Dismiss False Positive"
-                              className="p-1.5 rounded bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="p-1.5 rounded bg-rose-500/15 text-rose-500 hover:bg-rose-500/25 border border-rose-500/30 transition-all disabled:opacity-50 cursor-pointer"
                             >
-                              <XCircle className="w-4 h-4" />
+                              <XCircle className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         ) : (
                           <span
-                            className={`inline-block px-2 py-0.5 rounded font-mono text-[10px] uppercase tracking-wider border ${
+                            className={`inline-block px-2 py-0.5 rounded font-mono text-[10px] uppercase font-bold tracking-wider border ${
                               alert.status === "confirmed"
-                                ? "bg-emerald-950/40 text-emerald-300 border-emerald-800/60"
-                                : "bg-slate-800 text-slate-500 border-slate-700"
+                                ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/30"
+                                : "bg-muted text-muted-foreground border-border"
                             }`}
                           >
                             {alert.status}
@@ -257,6 +302,44 @@ export function AlertTable({ alerts, onStatusChange }: AlertTableProps) {
               </AnimatePresence>
             </tbody>
           </table>
+        </div>
+
+        {/* Shadcn-style Data Table Pagination Footer */}
+        <div className="px-4 py-3 border-t border-border bg-muted/40 flex items-center justify-between font-mono text-xs text-muted-foreground">
+          <div>
+            Showing{" "}
+            <strong className="text-foreground">
+              {filteredAlerts.length > 0 ? (currentPage - 1) * pageSize + 1 : 0}
+            </strong>{" "}
+            to{" "}
+            <strong className="text-foreground">
+              {Math.min(currentPage * pageSize, filteredAlerts.length)}
+            </strong>{" "}
+            of <strong className="text-foreground">{filteredAlerts.length}</strong>{" "}
+            alerts
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Previous
+            </Button>
+            <span className="px-2 text-foreground text-[11px]">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>

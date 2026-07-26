@@ -14,26 +14,26 @@ export function Navbar({ wsConnected = true }: { wsConnected?: boolean }) {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-[#090d16]/90 backdrop-blur-md border-b border-slate-800 px-6 py-3 flex items-center justify-between">
+    <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border px-6 py-3 flex items-center justify-between">
       <div className="flex items-center gap-6">
         <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:bg-amber-500/20 transition-colors">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 group-hover:bg-amber-500/20 transition-colors">
             <Radio className="w-4 h-4 animate-pulse" />
           </div>
           <div>
-            <span className="font-bold text-base tracking-tight text-slate-100 flex items-center gap-1.5">
+            <span className="font-bold text-base tracking-tight text-foreground flex items-center gap-1.5">
               DriftWatch
-              <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700">
+              <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-muted text-amber-500 border border-border">
                 SOC v1.0
               </span>
             </span>
-            <p className="text-[10px] text-slate-500 font-mono -mt-0.5">
+            <p className="text-[10px] text-muted-foreground font-mono -mt-0.5">
               Behavioral Anomaly Engine
             </p>
           </div>
         </Link>
 
-        <nav className="flex items-center gap-1 bg-slate-900/60 p-1 rounded-lg border border-slate-800/80">
+        <nav className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border border-border">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -45,13 +45,13 @@ export function Navbar({ wsConnected = true }: { wsConnected?: boolean }) {
                 href={item.href}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
                   isActive
-                    ? "bg-slate-800 text-amber-400 shadow-sm border border-slate-700/60"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                    ? "bg-muted text-amber-500 shadow-sm border border-border"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
                 }`}
               >
                 <Icon
                   className={`w-3.5 h-3.5 ${
-                    isActive ? "text-amber-400" : "text-slate-400"
+                    isActive ? "text-amber-500" : "text-muted-foreground"
                   }`}
                 />
                 {item.name}
@@ -62,28 +62,28 @@ export function Navbar({ wsConnected = true }: { wsConnected?: boolean }) {
       </div>
 
       <div className="flex items-center gap-3 text-xs font-mono shrink-0">
-        <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-slate-400">
+        <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded bg-muted border border-border text-muted-foreground">
           <Cpu className="w-3.5 h-3.5" />
           <span>
-            L1: <strong className="text-slate-200 font-normal">IForest</strong>
+            L1: <strong className="text-foreground font-normal">IForest</strong>
           </span>
-          <span className="text-slate-700">|</span>
+          <span className="text-border">|</span>
           <span>
-            L2: <strong className="text-slate-200 font-normal">XGBoost</strong>
+            L2: <strong className="text-foreground font-normal">XGBoost</strong>
           </span>
         </div>
 
-        <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-slate-900 border border-slate-800">
+        <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-muted border border-border">
           <span
             className={`w-2 h-2 rounded-full shrink-0 ${
               wsConnected
-                ? "bg-amber-400 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)]"
-                : "bg-slate-600"
+                ? "bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)]"
+                : "bg-muted-foreground"
             }`}
           />
           <span
             className={
-              wsConnected ? "text-amber-300 font-medium" : "text-slate-500"
+              wsConnected ? "text-amber-500 font-medium" : "text-muted-foreground"
             }
           >
             {wsConnected ? "LIVE" : "OFFLINE"}
